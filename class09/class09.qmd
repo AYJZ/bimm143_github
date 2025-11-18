@@ -1,0 +1,150 @@
+---
+title: "Class 09: Structural Bioinformatics (pt1)"
+author: "Alisa Zhang (PID: A18299618)"
+format: pdf
+toc: True
+---
+
+## PDB statistics
+
+The main database for structural biology is called the PDB. Let’s have a look at what it contains:
+
+> Q1. What percentage of structures in the PDB are solved by X-Ray and Electron Microscopy.
+
+```{r}
+data <- read.csv("Data Export Summary.csv")
+head(data)
+```
+
+```{r}
+data$Total
+```
+
+```{r}
+data$Neutron
+```
+
+Some data are not numeric.
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+pdb <- read_csv("Data Export Summary.csv")
+pdb
+```
+
+```{r}
+pro.xray <- sum(pdb$`X-ray`)/sum(pdb$Total)*100
+pro.em <- sum(pdb$EM)/sum(pdb$Total)*100
+```
+
+```{r}
+round(pro.xray,2)
+```
+
+```{r}
+round(pro.em,2)
+```
+
+81.48% are solved by X-Ray, and 12.22% are solved by Electron Microscopy.
+
+
+> Q2. What proportion of structures in the PDB are protein?
+
+```{r}
+pro.protein <- sum(pdb[1:3,"Total"])/sum(pdb$Total) * 100
+round(pro.protein,2)
+```
+
+97.91% are protein. 
+
+
+## Exploring PDB Statistics
+
+> Q3. Type HIV in the PDB website search box on the home page and determine how many HIV-1 protease structures are in the current PDB?
+
+4,866 structures are in PDB.
+
+Package for structural bioinformatics...
+
+```{r}
+library(bio3d)
+
+hiv <- read.pdb("1hsg")
+```
+
+```{r}
+hiv
+```
+
+Let’s first use the Mol* viewer to explore this structure.
+
+![First view of HIV-pr](1HSG.png)
+
+![Second view of HIV-pr](1HGS2.png)
+
+## PDB objects in R
+
+```{r}
+head(hiv$atom)
+```
+
+Extract the sequence..
+
+```{r}
+pdbseq(hiv)
+```
+
+```{r}
+chainA_seq <- pdbseq(trim.pdb(hiv, chain="A"))
+```
+
+I can interactively view these PDB objects with the **bio3dviewer** package.
+
+```{r}
+# install.packages("pak")
+# pak::pak("bioboot/bio3dview")
+# install.packages("NGLVieweR")
+```
+
+```{r}
+library(bio3dview)
+# view.pdb(hiv)
+```
+
+```{r}
+# sel <- atom.select(hiv,resno=25)
+
+# view.pdb(hiv, highlight = sel,
+#         highlight.style = "spacefill",
+#         colorScheme = "chain",
+#         col=c("blue","red"),
+#         backgroundColor = "grey")
+```
+
+## Predicting Protein Flexibility
+
+We can also run a bioinformatics calculation to predict protein dynamics (i.e. functional motions).
+
+We will use the nma() function.
+
+```{r}
+adk <- read.pdb("6s36")
+```
+
+```{r}
+m <- nma(adk)
+```
+
+```{r}
+plot(m)
+```
+
+Generate a “trajectory” of predicted motion.
+
+```{r}
+mktrj(m, file="ADK_nma.pdb")
+```
+
