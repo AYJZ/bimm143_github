@@ -1,2 +1,2 @@
 # bimm143_github
-Classwork for BIMM 143 Fa25 Class15 at UCSD.
+Classwork for BIMM143 Fa25 Class15 at UC San Diego.
