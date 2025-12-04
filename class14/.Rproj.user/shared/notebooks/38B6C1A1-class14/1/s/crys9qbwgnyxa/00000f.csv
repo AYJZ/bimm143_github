@@ -1,0 +1,4 @@
+"0","res$entrez <- mapIds(x=org.Hs.eg.db,"
+"0","                     keys = row.names(res),"
+"0","                     keytype = ""ENSEMBL"","
+"0","                     column = ""ENTREZID"")"

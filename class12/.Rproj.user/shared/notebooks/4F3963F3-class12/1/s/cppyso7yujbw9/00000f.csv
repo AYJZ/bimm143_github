@@ -1,0 +1,5 @@
+"0","ggplot(meancounts) +"
+"0","  aes(control.means, treated.means) +"
+"0","  geom_point() +"
+"0","  scale_x_log10() +"
+"0","  scale_y_log10()"

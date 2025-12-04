@@ -1,0 +1,6 @@
+"0","aln <- read.fasta(aln_file[1], to.upper = TRUE)"
+"1","[1]"
+"1"," "" ** Duplicated sequence id's: 101 **"""
+"1"," "" ** Duplicated sequence id's: 101 **"""
+"1","
+"

@@ -1,0 +1,3 @@
+"0","counts <- read.csv(file = ""GSE37704_featurecounts.csv"", row.names = 1)"
+"0","metadata <- read.csv(file = ""GSE37704_metadata.csv"")"
+"0","head(counts)"

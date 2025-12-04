@@ -1,0 +1,3 @@
+"0","m1.pdb <- read.pdb(pdb_files[1])"
+"0","occ <- vec2resno(c(sim[1:99], sim[1:99]), m1.pdb$atom$resno)"
+"0","write.pdb(m1.pdb, o=occ, file=""m1_conserv.pdb"")"

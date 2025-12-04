@@ -1,0 +1,5 @@
+"0","library(pheatmap)"
+"0",""
+"0","colnames(rd) <- paste0(""m"",1:5)"
+"0","rownames(rd) <- paste0(""m"",1:5)"
+"0","pheatmap(rd)"

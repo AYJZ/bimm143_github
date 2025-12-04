@@ -1,0 +1,6 @@
+"0","library(jsonlite)"
+"0",""
+"0","# Listing of all PAE JSON files"
+"0","pae_files <- list.files(path=results_dir,"
+"0","                        pattern="".*model.*\\.json"","
+"0","                        full.names = TRUE)"

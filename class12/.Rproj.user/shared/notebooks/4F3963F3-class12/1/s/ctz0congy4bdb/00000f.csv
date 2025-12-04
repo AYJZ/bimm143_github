@@ -1,0 +1,2 @@
+"0","treated.inds <- metadata$dex == ""treated"""
+"0","treated.counts <- counts[ , treated.inds]"

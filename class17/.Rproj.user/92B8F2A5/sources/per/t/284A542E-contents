@@ -1,0 +1,71 @@
+---
+title: "Class 17: Introduction to Genome Informatics Lab"
+author: "Alisa Zhang (PID: A18299618)"
+format: pdf
+---
+
+## Section 1: Proportion of G/G in MXL Population
+
+Downloaded csv file from Ensembl
+
+```{r}
+mxl <- read.csv("373531-SampleGenotypes-Homo_sapiens_Variation_Sample_rs8067378.csv")
+```
+
+```{r}
+round( table(mxl$Genotype..forward.strand.) / nrow(mxl) * 100, 2)
+```
+
+## Now for another population...
+
+```{r}
+gbr <- read.csv("373522-SampleGenotypes-Homo_sapiens_Variation_Sample_rs8067378.csv")
+```
+
+```{r}
+round (table(gbr$Genotype..forward.strand.) / nrow(mxl) * 100, 2)
+```
+
+This variant that is associated with childhood asthma is more frequent in the GBR population than the MKL population.
+
+
+## Section 4: Population Scale Analysis
+
+One sample is obviously not enough to know what is happening in a population. You are interested in assessing genetic differences on a population scale. 
+
+So, you processed about ~230 samples and did the normalization on a genome level. Now, you want to find whether there is any association of the 4 asthma-associated SNPs (rs8067378…) on ORMDL3 expression.
+
+```{r}
+expr <- read.table("rs8067378_ENSG00000172057.6.txt")
+
+head(expr)
+```
+
+```{r}
+nrow(expr)
+```
+
+```{r}
+table(expr$geno)
+```
+
+```{r}
+summary(expr)
+```
+
+
+```{r}
+library(ggplot2)
+```
+
+```{r}
+ggplot(expr) +
+  aes(geno, exp, fill=geno) +
+  geom_boxplot(notch = T) +
+  geom_jitter(position = position_jitter(width = 0.2), alpha = 0.3)
+```
+
+
+
+
+

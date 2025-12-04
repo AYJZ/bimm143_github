@@ -1,0 +1,4 @@
+"0","# Read a reference PDB structure"
+"0","pdb <- read.pdb(""1hsg"")"
+"1","  Note: Accessing on-line PDB file
+"

@@ -1,0 +1,3 @@
+"0","dds <- DESeqDataSetFromMatrix(countData = nonzero_counts,"
+"0","                              colData = metadata,"
+"0","                              design = ~condition)"

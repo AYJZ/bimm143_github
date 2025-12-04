@@ -1,0 +1,2 @@
+"0","control.inds <- metadata$dex == ""control"""
+"0","control.counts <- counts[ , control.inds]"

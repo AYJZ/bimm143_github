@@ -1,0 +1,7 @@
+"0","ggplot(cdc) +"
+"0","  aes(year, cases) +"
+"0","  geom_point() +"
+"0","  geom_line() +"
+"0","  geom_vline(xintercept = 1947, col = ""darkgreen"") +"
+"0","  geom_vline(xintercept = 1996, col = ""red"") + "
+"0","  geom_vline(xintercept = 2020, col = ""blue"")"

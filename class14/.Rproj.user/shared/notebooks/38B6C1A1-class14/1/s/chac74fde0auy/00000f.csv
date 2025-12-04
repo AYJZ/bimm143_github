@@ -1,0 +1,2 @@
+"0","to.keep.ids <- rowSums(cleancounts)>0"
+"0","nonzero_counts <- cleancounts[to.keep.ids,]"

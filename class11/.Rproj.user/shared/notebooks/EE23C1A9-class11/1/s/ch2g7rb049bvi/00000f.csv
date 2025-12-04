@@ -1,0 +1,5 @@
+"0","plot.dmat(pae5$pae, "
+"0","          xlab=""Residue Position (i)"","
+"0","          ylab=""Residue Position (j)"","
+"0","          grid.col = ""black"","
+"0","          zlim=c(0,30))"

@@ -1,0 +1,239 @@
+---
+title: "Class 11: Protein Structure Prediction with AlphaFold"
+author: "Alisa Zhang (PID: A18299618)"
+format: pdf
+toc: True
+---
+
+## AlphaFold Database (AFDB)
+
+The EBI maintains the largest dataase of AlphaFold structure prediction models at: https://alphafold.ebi.ac.uk/ 
+
+From last class (class 9), we saw that the PDB has 244,290 (Oct 2025) protein **structures**. 
+
+The total number of protein **sequences** in UniProtKB is 199,579,901.
+
+> Key Point: this is a tiny fraction of sequence space that has structural converage (0.12%).
+
+```{r}
+244290 / 199579901 * 100
+```
+
+AFDB is attempting to address this gap...
+
+There are two "Quality Scores" from AlphaFold, one for residues (i.e. each amino acids) called **pLDDT** score. The other is Predicted Aligned Error (**PAE**), which measures the confidence in the relative position of two residues (i.e. a score for every pair of residues).
+
+
+## Generating your own structure predictions
+
+Figure of 5 generated HIV-PR models
+
+![](allmodels.png)
+
+and the top ranked model colored by chain
+
+![](topmodels.png)
+
+pLDDT score for model 1
+
+![](highconf.png)
+
+and model 5
+
+![](lowconf.png)
+
+
+
+# Custom analysis of resulting models in R
+
+Read key result files into R. The first thing I need to know is what my results directory/folder is called (i.e. its name differ from every AlphaFold run/job)
+
+```{r}
+results_dir <- "HIVPrDimer_23119/"
+```
+
+```{r}
+# File names for all PDB models
+pdb_files <- list.files(path=results_dir,
+                        pattern="*.pdb",
+                        full.names = TRUE)
+
+# Print our PDB file names
+basename(pdb_files)
+```
+
+```{r}
+library(bio3d)
+
+# Read all data from Models 
+#  and superpose/fit coords
+pdbs <- pdbaln(pdb_files, fit=TRUE, exefile="msa")
+```
+
+```{r}
+pdbs
+```
+
+```{r}
+rd <- rmsd(pdbs, fit=T)
+range(rd)
+```
+
+```{r}
+library(pheatmap)
+
+colnames(rd) <- paste0("m",1:5)
+rownames(rd) <- paste0("m",1:5)
+pheatmap(rd)
+```
+Here we can see that models 1 and 2 are more similar to each other than they are to any other model. Models 4 and 5 are quite similar to each other and in turn more similar to model 3 than to models 1 and 2.
+
+Plotting pLDDT values
+
+```{r}
+# Read a reference PDB structure
+pdb <- read.pdb("1hsg")
+```
+
+```{r}
+plotb3(pdbs$b[1,], typ="l", lwd=2, sse=pdb)
+points(pdbs$b[2,], typ="l", col="red")
+points(pdbs$b[3,], typ="l", col="blue")
+points(pdbs$b[4,], typ="l", col="darkgreen")
+points(pdbs$b[5,], typ="l", col="orange")
+abline(v=100, col="gray")
+```
+
+```{r}
+core <- core.find(pdbs)
+```
+
+We can now use the identified core atom positions as a basis for a more suitable superposition and write out the fitted structures to a directory called corefit_structures:
+
+```{r}
+core.inds <- print(core, vol=0.5)
+```
+
+```{r}
+xyz <- pdbfit(pdbs, core.inds, outpath="corefit_structures")
+```
+
+![](corefit.png)
+
+Now we can examine the RMSF between positions of the structure.
+
+```{r}
+rf <- rmsf(xyz)
+
+plotb3(rf, sse=pdb)
+abline(v=100, col="gray", ylab="RMSF")
+```
+
+## Predicted Alignment Error for domains
+
+Independent of the 3D structure, AlphaFold produces an output called Predicted Aligned Error (PAE).
+
+```{r}
+library(jsonlite)
+
+# Listing of all PAE JSON files
+pae_files <- list.files(path=results_dir,
+                        pattern=".*model.*\\.json",
+                        full.names = TRUE)
+```
+
+Lets read 1 and 5 for example.
+
+```{r}
+pae1 <- read_json(pae_files[1],simplifyVector = TRUE)
+pae5 <- read_json(pae_files[5],simplifyVector = TRUE)
+
+attributes(pae1)
+```
+
+```{r}
+# Per-residue pLDDT scores 
+#  same as B-factor of PDB..
+head(pae1$plddt) 
+```
+
+We can plot the N by N (where N is the number of residues) PAE scores with ggplot or with functions from the Bio3D package:
+
+```{r}
+plot.dmat(pae1$pae, 
+          xlab="Residue Position (i)",
+          ylab="Residue Position (j)")
+```
+
+```{r}
+plot.dmat(pae5$pae, 
+          xlab="Residue Position (i)",
+          ylab="Residue Position (j)",
+          grid.col = "black",
+          zlim=c(0,30))
+```
+
+We should really plot all of these using the same z range. Here is the model 1 plot again but this time using the same data range as the plot for model 5:
+
+```{r}
+plot.dmat(pae1$pae, 
+          xlab="Residue Position (i)",
+          ylab="Residue Position (j)",
+          grid.col = "black",
+          zlim=c(0,30))
+```
+
+
+## Residue conservation from alignment file
+
+Find the large AlphaFold alignment file
+
+```{r}
+aln_file <- list.files(path=results_dir,
+                       pattern=".a3m$",
+                        full.names = TRUE)
+aln_file
+```
+
+Read this into R
+
+```{r}
+aln <- read.fasta(aln_file[1], to.upper = TRUE)
+```
+
+How many sequences are in this alignment
+
+```{r}
+dim(aln$ali)
+```
+
+We can score residue conservation in the alignment with the conserv() function.
+
+```{r}
+sim <- conserv(aln)
+```
+
+```{r}
+plotb3(sim[1:99], ylab="Conservation Score")
+```
+
+We can look at what the concensus sequences are (the heart of this molecule).
+
+```{r}
+con <- consensus(aln, cutoff = 0.9)
+con$seq
+```
+
+We can map this conservation score to the Occupancy column of a PDB file for viewing in molecular viewer programs such as Mol*.
+
+```{r}
+m1.pdb <- read.pdb(pdb_files[1])
+occ <- vec2resno(c(sim[1:99], sim[1:99]), m1.pdb$atom$resno)
+write.pdb(m1.pdb, o=occ, file="m1_conserv.pdb")
+```
+
+Here is an image of this data generated from and Mol* using coloring by Occupancy. 
+
+![](occupancy.png)
+
+Note that we can now clearly see the central conserved active site in this model where the natural peptide substrate (and small molecule inhibitors) would bind between domains.

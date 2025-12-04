@@ -1,0 +1,186 @@
+---
+title: "Class 12: Transcriptomics and the analysis of RNA-Seq data"
+author: "Alisa Zhang (PID: A18299618)"
+format: pdf
+toc: True
+---
+
+## Background
+
+Today we will analyze some RNASeq data from Himes et al. on the effects of a common steroid (dexamethasone) on airway smooth muscle cells (ASM cells).
+
+Our starting point is the "counts" data and "metadata" that contains the count values for each gene in their different experiment (i.e. cell lines with or without the drug).
+
+## Data Import
+
+```{r}
+counts <- read.csv("airway_scaledcounts.csv", row.names=1)
+metadata <-  read.csv("airway_metadata.csv")
+```
+
+Let's have a peak at these objects
+
+```{r}
+head(counts)
+```
+
+```{r}
+head(metadata)
+```
+
+> Q1. How many genes are in this dataset?
+
+```{r}
+nrow(counts)
+nrow(metadata)
+```
+
+> Q. How many different experiments (col in counts or rows in metadata) are there?
+
+```{r}
+ncol(counts)
+```
+
+> Q2. How many ‘control’ cell lines do we have?
+
+```{r}
+sum(metadata$dex == "control")
+```
+
+## Toy differential gene expression
+
+To start our analysis let's calculate the mean counts for all genes in the "control" experiments.
+
+1. Extract all "control" columns from the `counts` objects
+2. Calculate the mean 
+3-4. Do the same for "treated"
+5. Compare these `control.mean` 
+
+```{r}
+control.inds <- metadata$dex == "control"
+control.counts <- counts[ , control.inds]
+```
+
+```{r}
+control.means <- rowMeans(control.counts)
+```
+
+```{r}
+treated.inds <- metadata$dex == "treated"
+treated.counts <- counts[ , treated.inds]
+```
+
+```{r}
+treated.means <- rowMeans(treated.counts)
+```
+
+Store these together for ease of bookkeeping as `meancounts`
+
+```{r}
+meancounts <- data.frame(control.means, treated.means)
+head(meancounts)
+```
+
+```{r}
+library(ggplot2)
+ggplot(meancounts) +
+  aes(control.means, treated.means) +
+  geom_point()
+```
+
+*if all points lie on the diagonal line, that means theres no difference between control and treated. Since the data is very skewed, we should start with a log transform.
+
+```{r}
+ggplot(meancounts) +
+  aes(control.means, treated.means) +
+  geom_point() +
+  scale_x_log10() +
+  scale_y_log10()
+```
+
+We often talk about metrics like "log2 fold-change"
+
+```{r}
+# treated/control
+
+# log2() is easy for us to understand
+# log2(10/10) = 0
+# log2(10/20) = -1
+# log2(10/40) = -2
+# log2(40/10) = 2
+```
+
+Let's calculate the log2 fold change for our treated over control mean counts.
+
+```{r}
+meancounts["log2fc"] <- log2(meancounts$treated.means / meancounts$control.means)
+```
+
+```{r}
+head(meancounts)
+```
+
+A common "rule of thumb" is a log2 fold change cutoff of +2 and -2 to call genes "up regulated" or "down regulated". 
+
+Number of "up" genes:
+```{r}
+sum(meancounts$log2fc >= +2, na.rm=T)
+```
+
+Number of "down" genes at -2 threshold:
+```{r}
+sum(meancounts$log2fc <= -2, na.rm=T)
+```
+
+
+## DESeq2 analysis
+
+Lets do this analysis properly -- are the differences we see between drug and no drug significant given the replicate experiments. 
+
+```{r, message = FALSE}
+library(DESeq2)
+```
+
+
+For DESeq analysis, we need three things:
+
+1. count values (`countData`)
+2. metadata telling us about the columns in `countData` (`colData`)
+3. design of the experiment (i.e. what do you want to compare)
+
+Our first function from DESeq2 will setup the input required for analysis by storing all these 3 things together. 
+
+```{r}
+dds <- DESeqDataSetFromMatrix(countData = counts,
+                              colData = metadata,
+                              design = ~dex)
+```
+
+The main function in DESeq2 that runs analysis is called `DESeq`
+
+```{r}
+dds <- DESeq(dds)
+```
+
+```{r}
+res <- results(dds)
+head(res)
+```
+
+## Volcano Plot
+
+This is a common summary result figure from these types of experiments and plot the log2 fold-change vs. the adjusted p-value.
+
+```{r}
+plot(res$log2FoldChange, -log(res$padj))
+abline(v=c(-2,2), col="red") # ones that expression of genes w or w/o drug changes a lot (away from 0)
+abline(h=-log(0.04), col="red") # ones that are statistically significant (above the line)
+```
+
+## Save our results
+
+```{r}
+write.csv(res, file="my_results.csv")
+```
+
+

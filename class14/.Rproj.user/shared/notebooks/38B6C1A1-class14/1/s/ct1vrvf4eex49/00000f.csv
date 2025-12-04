@@ -1,0 +1,3 @@
+"0","sig_genes <- res[res$padj <= 0.05 & !is.na(res$padj), ]$symbol"
+"0",""
+"0","write.table(sig_genes, file=""significant_genes.txt"", row.names=FALSE, col.names=FALSE, quote=FALSE)"
