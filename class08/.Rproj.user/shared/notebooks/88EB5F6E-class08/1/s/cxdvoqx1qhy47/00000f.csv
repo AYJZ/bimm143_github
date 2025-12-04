@@ -1,0 +1,2 @@
+"0","library(rgl)"
+"0","plot3d(wisc.pr$x[,1:3], xlab=""PC 1"", ylab=""PC 2"", zlab=""PC 3"", cex=1.5, size=1, type=""s"", col=grps)"

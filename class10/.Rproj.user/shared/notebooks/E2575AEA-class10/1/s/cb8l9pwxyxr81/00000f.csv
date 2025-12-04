@@ -1,0 +1,1 @@
+"0","plot(pca$x[,1:2], col=my_cols, pch=16)"

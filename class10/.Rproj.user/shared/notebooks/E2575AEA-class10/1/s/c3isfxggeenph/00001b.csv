@@ -1,0 +1,2 @@
+"0","ggplot(candy) + aes(winpercent) +"
+"0","  geom_histogram(binwidth = 5)"

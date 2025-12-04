@@ -1,0 +1,36 @@
+"0","hiv"
+"1","
+ Call:  "
+"1",""
+"1","read.pdb(file = ""1hsg"")"
+"1",""
+"1","
+"
+"1","
+   Total Models#: 1
+     Total Atoms#: 1686,  XYZs#: 5058  Chains#: 2  (values: A B)
+
+     Protein Atoms#: 1514  (residues/Calpha atoms#: 198)
+     Nucleic acid Atoms#: 0  (residues/phosphate atoms#: 0)
+
+     Non-protein/nucleic Atoms#: 172  (residues: 128)
+     Non-protein/nucleic resid values: [ HOH (127), MK1 (1) ]
+
+"
+"1","   Protein sequence:
+"
+"1",""
+"1","      PQITLWQRPLVTIKIGGQLKEALLDTGADDTVLEEMSLPGRWKPKMIGGIGGFIKVRQYD
+      QILIEICGHKAIGTVLVGPTPVNIIGRNLLTQIGCTLNFPQITLWQRPLVTIKIGGQLKE
+      ALLDTGADDTVLEEMSLPGRWKPKMIGGIGGFIKVRQYDQILIEICGHKAIGTVLVGPTP
+      VNIIGRNLLTQIGCTLNF"
+"1",""
+"1","
+
+"
+"1","+ attr: atom, xyz, seqres, helix, sheet,"
+"1","
+"
+"1","        calpha, remark, call"
+"1","
+"

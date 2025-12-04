@@ -1,0 +1,22 @@
+"0","library(""skimr"")"
+"0","skim(candy)"
+"1","── Data Summary ────────────────────────
+"
+"1","                           Values
+"
+"1","Name                       candy 
+"
+"1","Number of rows             85    
+"
+"1","Number of columns          12    
+"
+"1","_______________________          
+"
+"1","Column type frequency:           
+"
+"1","  numeric                  12    
+"
+"1","________________________         
+"
+"1","Group variables            None  
+"

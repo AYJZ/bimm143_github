@@ -1,0 +1,2 @@
+"0","wisc.df <- read.csv(""WisconsinCancer.csv"", row.names=1)"
+"0","head(wisc.df)"

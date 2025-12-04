@@ -1,0 +1,7 @@
+"0","p <- ggplot(genes) +"
+"0","  aes("
+"0","    x = Condition1,"
+"0","    y = Condition2,"
+"0","    colour = State"
+"0","  ) +"
+"0","  geom_point()"

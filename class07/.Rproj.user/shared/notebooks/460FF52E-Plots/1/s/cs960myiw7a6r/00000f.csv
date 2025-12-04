@@ -1,0 +1,8 @@
+"0","label_df <- df %>%"
+"0","  group_by(sets) %>%"
+"0","  summarise("
+"0","    gene_names = paste(gene, collapse = ""\n""),   # combine names into one string"
+"0","    n = n()                                       # number of genes in that intersection"
+"0","  ) %>%"
+"0","  arrange(n) %>%                     # sort by size (smallest first)"
+"0","  slice_head(n = 3)                  # <-- take only the last 3 intersections"

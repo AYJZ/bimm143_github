@@ -1,0 +1,2 @@
+"0","pro.xray <- sum(pdb$`X-ray`)/sum(pdb$Total)*100"
+"0","pro.em <- sum(pdb$EM)/sum(pdb$Total)*100"

@@ -1,0 +1,2 @@
+"0","# Scale the wisc.data data using the ""scale()"" function"
+"0","data.scaled <- scale(wisc.data)"

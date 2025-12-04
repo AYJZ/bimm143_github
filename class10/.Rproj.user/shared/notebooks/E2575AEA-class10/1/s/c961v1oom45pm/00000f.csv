@@ -1,0 +1,4 @@
+"0","my_cols=rep(""black"", nrow(candy))"
+"0","my_cols[as.logical(candy$chocolate)] = ""chocolate"""
+"0","my_cols[as.logical(candy$bar)] = ""brown"""
+"0","my_cols[as.logical(candy$fruity)] = ""pink"""

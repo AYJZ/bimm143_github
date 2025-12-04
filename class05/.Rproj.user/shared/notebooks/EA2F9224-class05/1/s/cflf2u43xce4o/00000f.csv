@@ -1,0 +1,4 @@
+"0","# File location online"
+"0","url <- ""https://raw.githubusercontent.com/jennybc/gapminder/master/inst/extdata/gapminder.tsv"""
+"0",""
+"0","gapminder <- read.delim(url)"

@@ -1,0 +1,7 @@
+"0","ssvec <- c()"
+"0",""
+"0","for(i in 1:5){"
+"0","  km <- kmeans(x, centers = i)"
+"0","  ssvec[i] <- km$tot.withinss"
+"0","}"
+"0","plot(c(1:5), ssvec, type=""o"", xlab=""Numer of clusters (k)"", ylab=""Total within SS"", main=""Scree Plot"")"

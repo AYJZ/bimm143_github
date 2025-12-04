@@ -1,0 +1,2 @@
+"0","# Make a new data-frame with our PCA results and candy data"
+"0","my_data <- cbind(candy, pca$x[,1:3])"

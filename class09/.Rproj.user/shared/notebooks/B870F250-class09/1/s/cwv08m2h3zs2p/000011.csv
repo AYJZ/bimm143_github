@@ -1,0 +1,5 @@
+"0","adk <- read.pdb(""6s36"")"
+"1","  Note: Accessing on-line PDB file
+"
+"1","   PDB has ALT records, taking A only, rm.alt=TRUE
+"

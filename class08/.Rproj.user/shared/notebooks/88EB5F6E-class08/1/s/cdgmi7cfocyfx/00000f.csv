@@ -1,0 +1,2 @@
+"0","# Take the first 7 PC"
+"0","dist.pc <- dist(wisc.pr$x[,1:7])"

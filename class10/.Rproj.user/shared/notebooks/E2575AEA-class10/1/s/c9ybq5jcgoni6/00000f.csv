@@ -1,0 +1,8 @@
+"0","chocolate <- candy$winpercent[as.logical(candy$chocolate)]"
+"0","fruit <- candy$winpercent[as.logical(candy$fruity)]"
+"0",""
+"0","mean(chocolate) > mean(fruit)"
+"1","[1]"
+"1"," TRUE"
+"1","
+"

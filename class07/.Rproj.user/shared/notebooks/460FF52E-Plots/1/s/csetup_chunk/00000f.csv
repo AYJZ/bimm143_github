@@ -1,0 +1,7 @@
+"0","knitr::opts_chunk$set(echo = TRUE)"
+"0",""
+"0","setwd(""~/Desktop/UBE2G2 Figures/UpSet Plot"")"
+"0",""
+"0","GOBP_ERAD_PATHWAY <- readLines(""GOBP_ERAD_PATHWAY.genes.txt"")"
+"0","ST7_ALL <- readLines(""ST7_ALL.genes.txt"")"
+"0","ST8_ALL <- readLines(""ST8_ALL.genes.txt"")"

@@ -1,0 +1,1 @@
+"0","plot(hclust(data.dist, method = ""ward.D2""))"

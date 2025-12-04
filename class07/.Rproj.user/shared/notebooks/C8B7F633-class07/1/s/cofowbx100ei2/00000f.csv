@@ -1,0 +1,2 @@
+"0","cols <- c(""orange"",""red"",""blue"",""green"")"
+"0","plot(pca$x[,1], pca$x[,2], col=cols, pch=16)"

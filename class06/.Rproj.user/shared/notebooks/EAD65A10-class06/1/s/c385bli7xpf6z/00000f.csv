@@ -1,0 +1,8 @@
+"0","student3 <- c(90, NA, NA, NA, NA, NA, NA, NA)"
+"0","x <- student3"
+"0","x[is.na(x)] <- 0"
+"0","mean( x[-which.min(x)] )"
+"1","[1]"
+"1"," 12.85714"
+"1","
+"

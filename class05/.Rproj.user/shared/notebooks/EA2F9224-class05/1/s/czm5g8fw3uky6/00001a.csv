@@ -1,0 +1,4 @@
+"0","ggplot(gapminder) +"
+"0","  aes(gdpPercap, lifeExp, colour = continent, label = country) +"
+"0","  geom_point() +"
+"0","  geom_text()"

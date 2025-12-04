@@ -1,0 +1,4 @@
+"0","candy_file <- ""candy-data.csv"""
+"0",""
+"0","candy = read.csv(candy_file, row.names=1)"
+"0","head(candy)"

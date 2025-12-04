@@ -1,0 +1,1 @@
+"0","chainA_seq <- pdbseq(trim.pdb(hiv, chain=""A""))"

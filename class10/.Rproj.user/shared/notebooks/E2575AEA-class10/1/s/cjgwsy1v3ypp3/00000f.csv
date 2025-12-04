@@ -1,0 +1,7 @@
+"0","library(ggrepel)"
+"0",""
+"0","# How about a plot of price vs win"
+"0","ggplot(candy) +"
+"0","  aes(winpercent, pricepercent, label=rownames(candy)) +"
+"0","  geom_point(col=my_cols) + "
+"0","  geom_text_repel(col=my_cols, size=3.3, max.overlaps = 5)"

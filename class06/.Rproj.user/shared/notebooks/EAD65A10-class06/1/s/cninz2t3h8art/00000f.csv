@@ -1,0 +1,4 @@
+"0","grade <- function(x) {"
+"0","  x[is.na(x)] <- 0"
+"0","  mean( x[-which.min(x)] )"
+"0","}"

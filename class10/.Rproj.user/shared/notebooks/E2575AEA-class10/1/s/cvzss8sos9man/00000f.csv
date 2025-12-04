@@ -1,0 +1,2 @@
+"0","ord <- order(candy$pricepercent, decreasing = TRUE)"
+"0","head( candy[ord,c(11,12)], n=5 )"

@@ -1,0 +1,3 @@
+"0","ggplot(wisc.pr$x) +"
+"0","  aes(PC1, PC2, col=diagnosis) +"
+"0","  geom_point()"

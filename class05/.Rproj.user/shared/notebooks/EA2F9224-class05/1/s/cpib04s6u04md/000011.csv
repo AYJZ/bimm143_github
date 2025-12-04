@@ -1,0 +1,6 @@
+"0","library(ggrepel)"
+"0",""
+"0","ggplot(gapminder) +"
+"0","  aes(gdpPercap, lifeExp, colour = continent, label = country) +"
+"0","  geom_point() +"
+"0","  geom_text_repel()"

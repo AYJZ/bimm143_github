@@ -1,0 +1,7 @@
+"0","# sel <- atom.select(hiv,resno=25)"
+"0",""
+"0","# view.pdb(hiv, highlight = sel,"
+"0","#         highlight.style = ""spacefill"","
+"0","#         colorScheme = ""chain"","
+"0","#         col=c(""blue"",""red""),"
+"0","#         backgroundColor = ""grey"")"

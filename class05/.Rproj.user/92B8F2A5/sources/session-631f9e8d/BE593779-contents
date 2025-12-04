@@ -1,0 +1,394 @@
+## load necessary packages
+suppressPackageStartupMessages(library(data.table))
+suppressPackageStartupMessages(library(biomaRt))
+suppressPackageStartupMessages(library(GenomicRanges))
+suppressPackageStartupMessages(library(rtracklayer))
+suppressPackageStartupMessages(library(MendelianRandomization))
+suppressPackageStartupMessages(library(tidyverse))
+
+# run code with `Rscript 0_example_mr.r 1 499`
+# the command line args are the start and end (of the protein list)
+# if no command line args given, it will run on the first 10 lines of the protein list
+# example scripts in `/cellar/users/emkobaya/projects/ir_mr/mr_example/output_03_09_2023/scripts`
+
+## set working directory
+directory <- '/cellar/users/yqwang/projects/ir_mr/results/t2d/suzuki/decode/second' 
+setwd(directory)
+
+# in working directory have folders:
+# ld plots results
+dir.create("ld")
+dir.create("plots")
+dir.create("results")
+
+## all proteins
+protein.files <- list.files("/cellar/users/emkobaya/projects/ir_mr/pqtl_filter/outputs/pqtl_filter_03_08_2023/f_stat/") 
+
+# argument parsing
+args <- commandArgs(trailingOnly=TRUE)
+start <- 1
+end <- 10
+if (length(args)!=2) {
+    print("more or less than 2 command line arguments given, will run on 10 lines of protein.files")
+} else {
+    start <- as.numeric(args[1])
+    end <- as.numeric(args[2])
+}
+protein.files <- protein.files[c(start:end)]
+
+## set protein files (f-stat)
+f_stat_dir <- "/cellar/users/emkobaya/projects/ir_mr/pqtl_filter/outputs/pqtl_filter_03_08_2023/f_stat/"
+
+
+## set proxy files (chromosome)
+chrom_dir <- "/cellar/users/emkobaya/projects/ir_mr/pqtl_filter/outputs/pqtl_filter_03_08_2023/chromosome/"
+
+
+## set LD ref
+my_ld_ref <- "/cellar/users/emkobaya/projects/ir_mr/pqtl_filter/outputs/1000G_EUR_Phase3_plink_no_rsid/"
+
+
+## ALT GWAS - GR37 coordinates
+## this file was made smaller by subsetting only the European GWAS result columns
+ukb.alt <- fread("/cellar/users/yqwang/data/gwas/t2d_gwas/EUR_Metal_LDSC-CORR_Neff.v2.txt", stringsAsFactor=F)
+
+## For this GWAS, "alt" is the effect allele
+
+# make alt be the effect allele
+# uncomment this code block and change with your GWAS header names and standardize to above
+ukb.alt <- ukb.alt %>% 
+    dplyr::rename(chr = Chromsome, 
+           pos = Position, 
+           ref = NonEffectAllele, 
+           alt = EffectAllele, 
+           beta_EUR = Beta, 
+           se_EUR = SE, 
+           pval_EUR = Pval,
+           af_EUR = EAF)  %>%  
+    mutate(ref = toupper(ref), alt = toupper(alt))
+
+ukb.alt <- ukb.alt %>%
+    filter(!is.na(beta_EUR))
+
+# add additional column with new ID (chrom:pos:allele1:allele2) (GR37)
+ukb.alt <- ukb.alt %>% mutate(SNP =
+        case_when(ref <= alt ~ paste0(chr,":",pos,":",ref,":",alt), 
+                  alt < ref ~ paste0(chr,":",pos,":",alt,":",ref)))
+
+## read in chain file for lifting over to GR37 later
+chain.file <- import.chain("/cellar/users/ndefores/annotations/liftOver/hg38ToHg19.over.chain")
+
+## also need to convert to GR38
+chain19_38.file <- import.chain("/cellar/users/ndefores/annotations/liftOver/hg38ToHg19.over.chain")
+
+start <- Sys.time()
+mr.res <- as.list(protein.files)
+names(mr.res) <- protein.files
+
+for (file in protein.files) {
+    print(file)
+    ## read in filtered pQTLs
+    pqtl <- fread(paste0(f_stat_dir, file),stringsAsFactors = F) %>%
+        dplyr::rename(SNP = newid) %>%
+        dplyr::select(-NSIG, -S05,-S01,-S001,-S0001,-SP2) %>%## remove wide column of SNPs in each LD clump
+        filter(Fstat >= 10) ## keep only pQTLs with F stat larger than 10
+    pqtl$CHR <- as.character(pqtl$CHR) ## change chromosome data type to join with GWAS results
+    
+    ## save some data on the protein being analyzed
+    chr <- unique(pqtl$CHR)
+    protein <- str_remove_all(file, "_decode_pQTLs_final_clump.txt")
+    
+    ## file to save plots
+    pdf(paste0("./plots/t2d_mr_plots_", protein,".pdf"))
+    
+    ## ensure all pQTLs are harmonized so beta is positive
+    p <- pqtl %>%
+        filter(Beta > 0)
+    n <- pqtl %>%
+        filter(Beta < 0) %>%
+        mutate(Beta = Beta * -1) %>%
+        dplyr::rename(tempA1 = effectAllele) %>%
+        dplyr::rename(effectAllele = otherAllele, otherAllele = tempA1) %>%
+        mutate(ImpMAF = 1-ImpMAF)
+    pqtl.switch <- rbind(p,n)
+    pqtl.switch$CHR <- as.character(pqtl.switch$CHR)
+    
+    ## free up memory
+    rm(pqtl)
+    
+    ## Join in pQTLs and GWAS by variant pos
+    pqtl.outcome <- pqtl.switch %>%
+        dplyr::rename(chr = CHR, pos = gr37_pos) %>%
+        left_join(., ukb.alt, by=c("SNP")) 
+
+    ## Harmonize effect alleles
+    ## In this code, alt.p / alt.g is effect allele 
+    pqtl.outcome.harmonized <- pqtl.outcome
+    ## adjust outcome beta if necessary
+    ## .p is for pqtl results, .g is for outcome GWAS results
+    signed_beta <- apply(pqtl.outcome.harmonized, 1, function(x) {
+        ref.p <- x[["otherAllele"]]
+        alt.p <- x[["effectAllele"]]
+        ref.g <- x[["ref"]]
+        alt.g <- x[["alt"]]
+        beta.g <- as.numeric(x[["beta_EUR"]])
+
+        # check if any of these are NA, if so return beta.g NA
+        if (is.na(ref.g) | is.na(alt.g)) return(NA)
+
+        ## no adjustments if the variants and effect alleles are the same
+        if(ref.p == ref.g & alt.p == alt.g) return(beta.g)
+
+        ## if the gwas variant effect allect is switched, return the opposite signed beta
+        else if (alt.p == ref.g & ref.p == alt.g) return(-1 * beta.g) 
+
+        ## if the variants do not match, do not return any beta
+        else return(NA)
+    })
+    pqtl.outcome.harmonized$signed_beta <- as.numeric(signed_beta)
+
+    ## missing from outcome GWAS
+    missing <- pqtl.outcome.harmonized %>%
+        filter(is.na(signed_beta))
+    
+    ## set up dummy variables
+    proxy.res <- data.frame(matrix(ncol = 3, nrow = 0))
+    pqtl.outcome.final <- data.frame(matrix(ncol = 27, nrow = 0))
+
+    num_proxy <- NA
+    ## Need to find how many can actually be run on plink
+    
+    # If there are no missing, then do not need to find LD proxies
+    if (dim(missing %>% filter(effectAllele != otherAllele))[1] != 0){
+        ## find LD proxies for these
+        missing %>% 
+            filter(effectAllele != otherAllele)  %>%  # so that alleles are not the same
+            dplyr::select(SNP) %>% 
+            unique() %>%  # need this because PLINK doesn't allow duplicate variant IDs in ld-snp-list file
+            write_delim(., paste0("./ld/", protein,"_alt_missing_snps.txt"), col_names = NA)
+
+        ## calculate LD with other pQTLs
+        ## note - you will need to have plink installed in the enviroment that you spawned the jupyter notebook server
+        # system(paste0("plink --bfile ", my_ld_ref, "1000G.EUR.QC.", chr, " --ld-snp-list ", directory,"ld/",protein,"_alt_missing_snps.txt --r2 inter-chr --ld-window-r2 0 --out ",directory,"ld/",protein,"_alt_missing_snps"), intern=T)
+
+        plink_err <- FALSE
+        result <- tryCatch({system(paste0("plink --bfile ", my_ld_ref, "1000G.EUR.QC.", chr, " --ld-snp-list ", directory,"ld/",protein,"_alt_missing_snps.txt --r2 inter-chr --ld-window-r2 0 --out ",directory,"ld/",protein,"_alt_missing_snps"), intern=T)
+        }, warning = function(war) {
+            print(paste0("warning from plink for protein ", protein, " ", war))
+            write(paste0(protein, " had warning from plink"), file = paste0(directory, "mr_log.txt"), append=T)
+            plink_err <- TRUE
+        }, error = function(err) {
+            print(paste0("error from plink for protein ", protein, " ", err))
+            write(paste0(protein, " had error from plink"), file = paste0(directory, "mr_log.txt"), append=T)
+            plink_err <- TRUE
+        })
+
+        if (file.exists(paste0("./ld/", protein,"_alt_missing_snps.ld"))){
+                            
+            ## find LD proxies with missing SNPs (those in LD > 0.8)
+            ld.mat <- fread(paste0("./ld/", protein,"_alt_missing_snps.ld"),stringsAsFactors = F)
+
+            ld.proxy <- ld.mat %>%
+                filter(R2 >= 0.8) %>% 
+                filter(SNP_A != SNP_B) %>%
+                arrange(desc(R2)) %>%
+                mutate(CHR_B_37=paste0("chr", CHR_B))  %>% 
+                mutate(BP_B_37=BP_B) %>% 
+                mutate(SNP_B_37=SNP_B) %>%
+                group_by(SNP_A) %>% 
+                slice(1)
+
+            if (nrow(ld.proxy) > 0) {
+                
+                # liftover 37 -> 38 to match up with pQTL file
+                ld.proxy.GRanges <- makeGRangesFromDataFrame(ld.proxy, seqnames.field = "CHR_B_37", end.field = "BP_B_37", start.field = "BP_B_37",keep.extra.columns = T)
+                ld.proxy.38 <- unlist(liftOver(ld.proxy.GRanges,chain19_38.file)) %>% as.data.frame 
+
+                # create chr:pos:a1:a2 in GR38
+                ld.proxy.38 <- ld.proxy.38 %>% separate(SNP_B, c("chr", "pos", "a1", "a2"), sep = ":") %>% 
+                    mutate(newid38 =
+                           case_when(a1 <= a2 ~ paste0(seqnames,":",start,":",a1,":",a2), 
+                                     a2 < a1 ~ paste0(seqnames,":",start,":",a2,":",a1)))
+
+                ## read in summary statistics of corresponding protein and chromosome to extract LD proxies
+                ld.proxy.res <- fread(paste0(chrom_dir, protein, "_chr_", chr,".gz"), stringsAsFactors = F)
+                ld.proxy.res <- ld.proxy.res  %>%
+                    filter(Pos %in% ld.proxy.38$start) %>% 
+                    mutate(newid38 =
+                        case_when(otherAllele <= effectAllele ~ paste0(Chrom,":",Pos,":",otherAllele,":",effectAllele), 
+                                  effectAllele < otherAllele ~ paste0(Chrom,":",Pos,":",effectAllele,":",otherAllele))) %>% 
+                    filter(newid38 %in% ld.proxy.38$newid38) %>%
+                    mutate(chr = sapply(Chrom, function(x) str_remove(x,"chr")))
+
+                ## if the ld proxy wasn't found, there could be no rows in the ld.proxy.res
+                if (dim(ld.proxy.res)[1] != 0){
+                    ## ensure all pQTLs are harmonized so beta is positive
+                    p <- ld.proxy.res %>%
+                        filter(Beta > 0)
+                    n <- ld.proxy.res %>%
+                        filter(Beta < 0) %>%
+                        mutate(Beta = Beta * -1) %>%
+                        rename(tempA1 = effectAllele) %>%
+                        rename(effectAllele = otherAllele, otherAllele = tempA1) %>%
+                        mutate(ImpMAF = 1-ImpMAF)
+                    ld.proxy.res.switch <- rbind(p,n)
+
+                    ## join using GR38
+                    ld.proxy.res37 <- ld.proxy.res.switch %>% 
+                        left_join(., ld.proxy.38 %>% select(SNP_B_37, newid38), by=c("Name"="newid38")) %>% 
+                        rename(SNP=SNP_B_37)
+
+                    ## Join in pQTLs and GWAS by variant pos
+                    ld.proxy.res.harmonized <- ld.proxy.res37 %>%
+                        # rename(pos = start) %>%
+                        left_join(., ukb.alt, by=c("SNP")) 
+                    signed_beta <- apply(ld.proxy.res.harmonized, 1, function(x) {
+                        ref.p <- x[["otherAllele"]]
+                        alt.p <- x[["effectAllele"]]
+                        ref.g <- x[["ref"]]
+                        alt.g <- x[["alt"]]
+                        beta.g <- as.numeric(x[["beta_EUR"]])
+
+                        # check if any of these are NA, if so return beta.g NA
+                        if (is.na(ref.g) | is.na(alt.g)) return(NA)
+
+                        ## no adjustments if the variants and effect alleles are the same
+                        if(ref.p == ref.g & alt.p == alt.g) return(beta.g)
+
+                        ## if the gwas variant effect allect is switched, return the opposite signed beta
+                        else if (alt.p == ref.g & ref.p == alt.g) return(-1 * beta.g) 
+
+                        ## if the variants do not match, do not return any beta
+                        else return(NA)
+                    })
+                    ld.proxy.res.harmonized$signed_beta <- as.numeric(signed_beta)
+
+                    ## add this to final pqtls for MR
+                    d1 <- select(pqtl.outcome.harmonized, SNP, Beta, SE, signed_beta,se_EUR) %>%
+                            mutate(LD.proxy = "N")
+                    d2 <- select(ld.proxy.res.harmonized, rsids, Beta, SE, signed_beta,se_EUR) %>%
+                        rename(SNP = rsids) %>%
+                        mutate(LD.proxy = "Y")
+                    pqtl.outcome.final <- rbind(d1,d2)
+                    write(paste0(protein, " had ", nrow(d2), " LD proxies"), file = paste0(directory, "mr_log.txt"), append=T)
+                } else {
+                pqtl.outcome.final <- pqtl.outcome.harmonized %>%
+                    mutate(LD.proxy = "N")
+                write(paste0(protein, " had no LD proxies because ld.proxy.res had no rows"), file = paste0(directory, "mr_log.txt"), append=T)
+                }
+            } else {
+                pqtl.outcome.final <- pqtl.outcome.harmonized %>%
+                    mutate(LD.proxy = "N")
+                write(paste0(protein, " had no LD proxies because ld.proxy contains no rows"), file = paste0(directory, "mr_log.txt"), append=T)
+            }
+        } else {
+            pqtl.outcome.final <- pqtl.outcome.harmonized %>%
+                mutate(LD.proxy = "N")
+            write(paste0(protein, " had no LD proxies because ld file does not exist"), file = paste0(directory, "mr_log.txt"), append=T)
+        }
+    } else {
+        pqtl.outcome.final <- pqtl.outcome.harmonized %>%
+            mutate(LD.proxy = "N")
+        write(paste0(protein, " had no LD proxies because no missing matches to GWAS"), file = paste0(directory, "mr_log.txt"), append=T)
+    }
+    # print(pqtl.outcome.final) ## may want to save this file?
+                                
+    ## run MR
+    dt <- pqtl.outcome.final %>%
+        filter(!is.na(signed_beta))
+    
+    # there must be at least one SNP to run MR
+    if (nrow(dt) != 0){
+   
+        # MRInputObject
+        MRInputObject <- mr_input(bx = dt$Beta,
+                                        bxse = dt$SE,
+                                        by = dt$signed_beta,
+                                        byse = dt$se_EUR,
+                                 exposure = paste0(protein, " levels"),
+                                 outcome = "risk of T2D")
+        ## RUN IVM MR
+        IVWObject <- mr_ivw(MRInputObject,
+                            model = "default",
+                            robust = F,
+                            penalized = F,
+                            correl = FALSE,
+                            weights = "delta", ## second order weights more accurate for uncertainty of causal effects of each IV
+                            psi = 0,
+                            distribution = "normal",
+                            alpha = 0.05)
+
+         # Convert your MR result to text
+        mr_text <- capture.output(IVWObject)
+
+        # Collapse to single string for parsing
+        mr_text <- paste(mr_text, collapse = " ")
+
+        # Extract degrees of freedom (DF)
+        df <- as.numeric(str_extract(mr_text, "(?<=on )\\d+(?= degrees of freedom)"))
+
+        # Extract I^2
+        I2 <- as.numeric(str_extract(mr_text, "(?<=I\\^2 = )\\d+\\.?\\d*"))
+
+        print(mr_plot(MRInputObject, line = "ivw", interactive =F, orientate = F))       
+
+        num_proxy <- c(dim(pqtl.outcome.final[pqtl.outcome.final$LD.proxy =="Y"])[1])
+
+         # must have 3 or more pQTLs for Egger
+        if (nrow(dt) > 2) {
+                ## Run Egger MR
+                EggerObject <- mr_egger(MRInputObject,
+                                            robust = F,
+                                            penalized = F,
+                                            correl = FALSE,
+                                            distribution = "normal",
+                                            alpha = 0.05)
+                print(mr_plot(MRInputObject, line = "egger", interactive =F, orientate = F))
+
+                r <- data.frame(protein = protein, nSNPs = IVWObject$SNPs, estimate.ivm = IVWObject$Estimate, se.ivm = IVWObject$StdError, CI95L.ivm = IVWObject$CILower, CI95H.ivm = IVWObject$CIUpper, pval.ivm = IVWObject$Pvalue, Q= IVWObject$Heter.Stat[1], Q_df =df, Q_pval = IVWObject$Heter.Stat[2], isquared = I2, rse.ivm = IVWObject$RSE,
+                                     estimate.egger = EggerObject$Estimate, se.est.egger = EggerObject$StdError.Est, CI95L.est = EggerObject@CILower.Est, CI95H.est = EggerObject@CIUpper.Est, pval.est = EggerObject@Pvalue.Est,
+                                     egger.int = EggerObject@Intercept, se.int =EggerObject@StdError.Int, CI95L.int = EggerObject@CILower.Int, CI95H.int = EggerObject@CIUpper.Int, pval.int = EggerObject@Pvalue.Int,
+                                     heter.stat.egger = EggerObject@Heter.Stat[1], heter.stat.pval.egger = EggerObject@Heter.Stat[2], I.sq.egger = EggerObject@I.sq, rse.egger = EggerObject@RSE, num_proxy = num_proxy)
+                mr.res[[file]] <- r
+            } else {
+                r <- data.frame(protein = protein, nSNPs = IVWObject$SNPs, estimate.ivm = IVWObject$Estimate, se.ivm = IVWObject$StdError, CI95L.ivm = IVWObject$CILower, CI95H.ivm = IVWObject$CIUpper, pval.ivm = IVWObject$Pvalue, Q= IVWObject$Heter.Stat[1], Q_df =df, Q_pval = IVWObject$Heter.Stat[2], isquared = I2, rse.ivm = IVWObject$RSE,
+                                     estimate.egger = NA, se.est.egger = NA, CI95L.est = NA, CI95H.est = NA, pval.est = NA,
+                                     egger.int = NA, se.int =NA, CI95L.int = NA, CI95H.int = NA, pval.int = NA,
+                                     heter.stat.egger = NA, heter.stat.pval.egger = NA, I.sq.egger = NA, rse.egger = NA, num_proxy = num_proxy)
+                mr.res[[file]] <- r
+            }
+
+        dev.off()
+    } else {
+        write(paste0(protein, " had no SNPs that passed filtering"), file = paste0(directory, "mr_log.txt"), append=T)
+        
+        r <- data.frame(protein = protein, nSNPs = NA, estimate.ivm = NA, se.ivm = NA, CI95L.ivm = NA, CI95H.ivm = NA, pval.ivm = NA, Q= NA, Q_df =NA, Q_pval = NA, isquared = NA, rse.ivm = NA,
+                             estimate.egger = NA, se.est.egger = NA, CI95L.est = NA, CI95H.est = NA, pval.est = NA,
+                             egger.int = NA, se.int =NA, CI95L.int = NA, CI95H.int = NA, pval.int = NA,
+                             heter.stat.egger = NA, heter.stat.pval.egger = NA, I.sq.egger = NA, rse.egger = NA, num_proxy = num_proxy)
+        mr.res[[file]] <- r
+	dev.off()
+    }
+                                
+                                
+    ## remove all ld files
+    if (dim(missing)[1] != 0){                            
+        for (ending in c("_alt_missing_snps.txt", "_alt_missing_snps.ld", "_alt_missing_snps.log", "_alt_missing_snps.nosex")) {
+            file.remove(paste0("./ld/", protein,ending))
+        }
+    }
+                                
+    ## write output file
+    r %>% 
+        write_delim(., paste0("./results/", protein,".txt"), delim="\t")
+
+}
+mr.res %>%
+    do.call(rbind,.) 
+                                
+end <- Sys.time()
+end - start
+                                
+mr.res %>%
+    do.call(rbind,.) %>% 
+    write_delim(., paste0(directory, "all_proteins_results.txt"), delim="\t")

@@ -1,0 +1,8 @@
+"0","p <- ggplot(my_data) + "
+"0","        aes(x=PC1, y=PC2, "
+"0","            size=winpercent/100,  "
+"0","            text=rownames(my_data),"
+"0","            label=rownames(my_data)) +"
+"0","        geom_point(col=my_cols)"
+"0",""
+"0","p"

@@ -1,0 +1,7 @@
+"0","library(ggrepel)"
+"0",""
+"0","p + geom_text_repel(size=3.3, col=my_cols, max.overlaps = 7)  + "
+"0","  theme(legend.position = ""none"") +"
+"0","  labs(title=""Halloween Candy PCA Space"","
+"0","       subtitle=""Colored by type: chocolate bar (dark brown), chocolate other (light brown), fruity (red), other (black)"","
+"0","       caption=""Data from 538"")"

@@ -1,0 +1,8 @@
+"0","result <- apply(gradebook, 1, grade)"
+"0","which.max(result)"
+"1","student-18 "
+"1","
+"
+"1","        18 "
+"1","
+"

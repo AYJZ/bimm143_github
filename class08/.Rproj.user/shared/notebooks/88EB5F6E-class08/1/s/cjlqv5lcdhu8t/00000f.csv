@@ -1,0 +1,1 @@
+"0","wisc.pr <- prcomp(wisc.data, scale. = TRUE)"

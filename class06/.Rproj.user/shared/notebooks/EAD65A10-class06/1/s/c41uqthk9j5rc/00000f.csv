@@ -1,0 +1,2 @@
+"0","url <- ""https://tinyurl.com/gradeinput"""
+"0","gradebook <- read.csv(url, row.names = 1)"

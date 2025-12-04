@@ -1,0 +1,3 @@
+"0","## ggplot based graph"
+"0","library(factoextra)"
+"0","fviz_eig(wisc.pr, addlabels = TRUE)"

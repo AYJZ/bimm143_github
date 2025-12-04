@@ -1,0 +1,2 @@
+"0","## Use the distance along the first 7 PCs for clustering i.e. wisc.pr$x[, 1:7]"
+"0","wisc.pr.hclust <- hclust(dist.pc, method=""ward.D2"")"

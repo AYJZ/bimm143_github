@@ -1,0 +1,1 @@
+"0","wisc.km <- kmeans(scale(wisc.data), centers= 2, nstart= 20)"

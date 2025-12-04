@@ -1,0 +1,2 @@
+"0","# Plot using our re-ordered factor "
+"0","plot(wisc.pr$x[,1:2], col=g)"

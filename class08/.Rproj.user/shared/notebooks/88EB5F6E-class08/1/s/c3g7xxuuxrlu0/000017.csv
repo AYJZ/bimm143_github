@@ -1,0 +1,4 @@
+"0","# Repeat for components 1 and 3"
+"0","ggplot(wisc.pr$x) +"
+"0","  aes(PC1, PC3, col=diagnosis) +"
+"0","  geom_point()"

@@ -1,0 +1,3 @@
+"0","# Alternative scree plot of the same data, note data driven y-axis"
+"0","barplot(pve, ylab = ""Precent of Variance Explained"","
+"0","     names.arg=paste0(""PC"",1:length(pve)), las=2, axes = FALSE)"
