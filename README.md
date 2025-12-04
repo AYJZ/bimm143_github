@@ -1,2 +1,7 @@
-# bimm143_github
-Classwork for BIMM143 Fa25 at UC San Diego.
+# BIMM143
+Classwork for [BIMM143 at UC San Diego](https://bioboot.github.io/bimm143_F25/).
+
+- Class 04 [R Fundamentals]()
+- Class 05 [Data Visualization with ggplot]()
+- Class 06 [Writing R Functions]()
+- Class 07 [Machine Learning 1]()
